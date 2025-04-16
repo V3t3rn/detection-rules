@@ -1,0 +1,40 @@
+name: Dev Rule Upload to Elastic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rules/**.toml"
+      - ".github/workflows/dev-upload.yml"
+      - "lib/**"
+
+jobs:
+  upload-dev-rules:
+    name: Upload to Elastic Dev
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Install Kibana/KQL libraries
+        run: poetry run pip install lib/kibana lib/kql
+
+      - name: Upload rules to Elastic (PUT)
+        env:
+          ELASTIC_URL: ${{ secrets.ELASTIC_URL }}
+          ELASTIC_API_KEY: ${{ secrets.ELASTIC_API_KEY }}
+        run: |
+          echo "Uploading rules to Elastic Dev cluster..."
+          poetry run dr upload-all --url "$ELASTIC_URL" --api-key "$ELASTIC_API_KEY" --put
